@@ -6,6 +6,7 @@ import Data.Map (Map)
 import qualified Data.Map as Map
 import Network.HTTP (simpleHTTP, getRequest, getResponseBody)
 import Text.HTML.TagSoup
+import System.Environment
 
 type PrimitiveModel a = Map (a, a) [a]
 
@@ -13,12 +14,19 @@ type ProcessedModel a = [(a, [(Int, Int)])]
 
 main :: IO()
 main = do
-  contents <- getContents
+  args <- getArgs
+  let inpath = args !! 0
+  let outpath = args !! 1
+
+  -- Read text from URLs file
+  contents <- readFile inpath
   let urls = filter (/= "") $ splitOn "\n" contents
   let foldf url m = putStrLn ("Reading " ++ url) >> updatePrimitiveModelFromUrlIO url m
   primitiveModel <- foldr foldf (return Map.empty) urls
   let processedModel = makeProcessedModel primitiveModel
-  writeProcessedModel "./sokal.model" processedModel
+  
+  -- Write model
+  writeProcessedModel outpath processedModel
   putStrLn "Successfully wrote model to sokal.model"
 
 -- Read all HTML from the provided web URL.
@@ -83,8 +91,10 @@ makeProcessedModel m = map (processElement (assignIDs m)) $ Map.toList $ convert
     Nothing -> makeFreqIDList y cs ids
   processElement ids ((x, y), cs) = (y, makeFreqIDList y cs ids)
 
+-- Convert a ProcessedModel to its String representation.
+processedModelToString :: ProcessedModel String -> String
+processedModelToString = intercalate "\n" . map show
+
 -- Write the ProcessedModel to a file.
 writeProcessedModel :: FilePath -> ProcessedModel String -> IO()
-writeProcessedModel path m = do
-  let str = intercalate "\n" $ map show m
-  writeFile path str
+writeProcessedModel path = writeFile path . processedModelToString

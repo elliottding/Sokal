@@ -12,10 +12,12 @@ type RandState = State StdGen
 
 main :: IO ()
 main = do
-  fastModel <- readFastModel "./sokal.model"
-  gen <- getStdGen
   args <- getArgs
-  let limit = read (args !! 0) :: Int
+  let modelpath = args !! 0
+  fastModel <- readFastModel modelpath
+
+  gen <- getStdGen
+  let limit = read (args !! 1) :: Int
   let ws = evalState (runModel limit fastModel) gen
   putStrLn $ unwords ws
 
